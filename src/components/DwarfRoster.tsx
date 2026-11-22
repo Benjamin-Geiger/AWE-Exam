@@ -11,12 +11,13 @@ interface Props {
   dwarves: Dwarf[];
   // num of available tools in storage
   tools: number;
+  starvationDays: number;
   onAssign: (id: string, job: JobType) => void;
   onEquip: (id: string) => void;
   onReturn: (id: string) => void;
 }
 
-export function DwarfRoster({ dwarves, tools, onAssign, onEquip, onReturn }: Props) {
+export function DwarfRoster({ dwarves, tools, starvationDays, onAssign, onEquip, onReturn }: Props) {
   const presentDwarves = dwarves.filter(
     (dwarf) => dwarf.status !== "expedition",
   ).length;
@@ -34,8 +35,13 @@ export function DwarfRoster({ dwarves, tools, onAssign, onEquip, onReturn }: Pro
       </header>
 
       <div className="dwarf-list">
-        {dwarves.map((dwarf) => {
+        {dwarves.map((dwarf, index) => {
           const isAway = dwarf.status === "expedition";
+  
+          const daysUntilStarvation =
+            index === dwarves.length - 1 && starvationDays > 0
+              ? 3 - starvationDays
+              : null;
           const specialty = dwarf.specialty
             ? `Skilled in ${jobLabel(dwarf.specialty)}`
             : "Generalist";
@@ -60,6 +66,13 @@ export function DwarfRoster({ dwarves, tools, onAssign, onEquip, onReturn }: Pro
                     ? "⚒️ Carries a tool (+1 / day)"
                     : "No tool"}
                 </p>
+                {daysUntilStarvation !== null && (
+                  <p className="starvation-warning" role="status">
+                    Starves in {daysUntilStarvation}{" "}
+                    {daysUntilStarvation === 1 ? "day" : "days"} if rations
+                    stay low
+                  </p>
+                )}
 
                 <select
                   value={dwarf.assignment ?? ""}

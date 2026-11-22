@@ -6,3 +6,4 @@
 .tool-actions{display:flex;gap:6px;margin-top:7px}
 .tool-actions button{flex:1;border:0;background:#c18b3f;color:#160f08;padding:8px 11px;font:700 11px Barlow Condensed;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
 .tool-actions button:disabled{opacity:.5;cursor:default}
+.starvation-warning{color:#d87f63!important;font-weight:600}

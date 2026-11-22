@@ -42,6 +42,7 @@ export function ColonyPage() {
         onAssign={assignDwarf}
         onEquip={equipTool}
         onReturn={unequipTool}
+        starvationDays={colony.starvationDays}
       />
 
       <section className="center-stack">

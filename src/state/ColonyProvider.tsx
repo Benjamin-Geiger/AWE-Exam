@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { beginExpedition } from "../api";
 import { advanceDay, equipTool, jobLabel, unequipTool } from "../simulation";
 import type {
@@ -18,6 +18,7 @@ const initialState: ColonyState = {
     tools: 1,
     weapons: 0,
   },
+  starvationDays: 0,
   dwarves: [
     {
       id: "dwarf-1",
@@ -62,6 +63,7 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
       message: "The forge fires are lit. Stonehome wakes.",
     },
   ]);
+  const previousColony = useRef(colony);
 
   useEffect(() => {
     if (paused) return;
@@ -73,6 +75,30 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
 
     return () => window.clearInterval(timer);
   }, [paused]);
+
+  // Log the dwarf removed by advanceDay's starvation rule.
+  useEffect(() => {
+    const previous = previousColony.current;
+    previousColony.current = colony;
+    if (colony.day === previous.day) return;
+
+    const deceased = previous.dwarves.find(
+      (dwarf) => !colony.dwarves.some((remaining) => remaining.id === dwarf.id),
+    );
+    if (!deceased) return;
+
+    setActivities((current) =>
+      [
+        {
+          id: `starvation-${deceased.id}-${colony.day}`,
+          day: colony.day,
+          message: `${deceased.name} died after three consecutive days without enough rations.`,
+          tone: "warning" as const,
+        },
+        ...current,
+      ].slice(0, 6),
+    );
+  }, [colony]);
 
   function assignDwarf(id: string, assignment: JobType) {
     setColony((current) => ({
