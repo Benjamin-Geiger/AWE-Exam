@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Chronicle } from "../components/Chronicle";
 import { DwarfRoster } from "../components/DwarfRoster";
-import { jobLabel, production } from "../simulation";
+import { dwarfOutput, jobLabel, production } from "../simulation";
 import { useColony } from "../state/ColonyContext";
 import type { ResourceKey } from "../types";
 
@@ -11,6 +11,8 @@ export function ColonyPage() {
     activities,
     expeditionPending,
     assignDwarf,
+    equipTool,
+    unequipTool,
     sendExpedition,
   } = useColony();
   const [destination, setDestination] = useState("crystal-cave");
@@ -18,12 +20,9 @@ export function ColonyPage() {
 
   const dailyOutput = colony.dwarves.reduce<Record<ResourceKey, number>>(
     (total, dwarf) => {
-      if (dwarf.assignment) {
-        const output = production[dwarf.assignment];
-        Object.entries(output).forEach(([resource, amount]) => {
-          total[resource as ResourceKey] += amount ?? 0;
-        });
-      }
+      Object.entries(dwarfOutput(dwarf)).forEach(([resource, amount]) => {
+        total[resource as ResourceKey] += amount ?? 0;
+      });
       return total;
     },
     {
@@ -31,6 +30,7 @@ export function ColonyPage() {
       stone: 0,
       food: -colony.dwarves.length,
       tools: 0,
+      weapons: 0,
     },
   );
 
@@ -38,8 +38,11 @@ export function ColonyPage() {
     <div className="dashboard">
       <DwarfRoster
         dwarves={colony.dwarves}
-        starvationDays={colony.starvationDays}
+        tools={colony.resources.tools}
         onAssign={assignDwarf}
+        onEquip={equipTool}
+        onReturn={unequipTool}
+        starvationDays={colony.starvationDays}
       />
 
       <section className="center-stack">
