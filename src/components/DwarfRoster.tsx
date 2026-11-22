@@ -9,10 +9,11 @@ const jobs: Exclude<JobType, null>[] = [
 
 interface Props {
   dwarves: Dwarf[];
+  starvationDays: number;
   onAssign: (id: string, job: JobType) => void;
 }
 
-export function DwarfRoster({ dwarves, onAssign }: Props) {
+export function DwarfRoster({ dwarves, starvationDays, onAssign }: Props) {
   const presentDwarves = dwarves.filter(
     (dwarf) => dwarf.status !== "expedition",
   ).length;
@@ -30,8 +31,13 @@ export function DwarfRoster({ dwarves, onAssign }: Props) {
       </header>
 
       <div className="dwarf-list">
-        {dwarves.map((dwarf) => {
+        {dwarves.map((dwarf, index) => {
           const isAway = dwarf.status === "expedition";
+  
+          const daysUntilStarvation =
+            index === dwarves.length - 1 && starvationDays > 0
+              ? 3 - starvationDays
+              : null;
           const specialty = dwarf.specialty
             ? `Skilled in ${jobLabel(dwarf.specialty)}`
             : "Generalist";
@@ -51,6 +57,13 @@ export function DwarfRoster({ dwarves, onAssign }: Props) {
                 <p>
                   {dwarf.title} · {specialty}
                 </p>
+                {daysUntilStarvation !== null && (
+                  <p className="starvation-warning" role="status">
+                    Starves in {daysUntilStarvation}{" "}
+                    {daysUntilStarvation === 1 ? "day" : "days"} if rations
+                    stay low
+                  </p>
+                )}
 
                 <select
                   value={dwarf.assignment ?? ""}
