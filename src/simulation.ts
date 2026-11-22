@@ -69,3 +69,8 @@ export const jobLabel = (job: JobType) => job ? ({
   mining: "Deep Mining",
   farming: "Mushroom Farm"
 }[job]) : "Unassigned";
+
+export const recipes = {
+  tool: { label: "tool", cost: { wood: 3, stone: 2 }, output: { tools: 1 } },
+  weapon: { label: "weapon", cost: { wood: 1, stone: 3, tools: 1 }, output: { weapons: 1 } },
+};

@@ -19,6 +19,7 @@ const initialState: ColonyState = {
     weapons: 0,
   },
   starvationDays: 0,
+  forgeEvents: [],
   dwarves: [
     {
       id: "dwarf-1",

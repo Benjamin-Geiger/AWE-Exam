@@ -3,7 +3,7 @@ import { advanceDay } from "./simulation";
 import type { ColonyState } from "./types";
 describe("colony simulation", () => {
   it("produces assigned resources and feeds the company", () => {
-    const state: ColonyState = { day: 1, resources: { wood: 0, stone: 0, food: 5, tools: 0, weapons: 0 }, dwarves: [{ id: "d1", name: "Brom", title: "", icon: "", assignment: "woodcutting", status: "working", hasTool: false }],  starvationDays: 0 };
+    const state: ColonyState = { day: 1, resources: { wood: 0, stone: 0, food: 5, tools: 0, weapons: 0 }, dwarves: [{ id: "d1", name: "Brom", title: "", icon: "", assignment: "woodcutting", status: "working", hasTool: false }],  starvationDays: 0, forgeEvents: [] };
     expect(advanceDay(state)).toMatchObject({ day: 2, resources: { wood: 3, food: 4 } });
     expect(state.resources.wood).toBe(0);
   });
@@ -17,6 +17,7 @@ describe("colony simulation", () => {
         { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
       ],
       starvationDays: 0,
+      forgeEvents: [],
     };
 
     const firstShortageDay = advanceDay(state);
@@ -40,6 +41,7 @@ describe("colony simulation", () => {
         { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
       ],
       starvationDays: 0,
+      forgeEvents: [],
     };
 
     const dayOne = advanceDay(state);
@@ -61,6 +63,7 @@ describe("colony simulation", () => {
         { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false},
       ],
       starvationDays: 0,
+      forgeEvents: [],
     };
 
     const nextDay = advanceDay(state);

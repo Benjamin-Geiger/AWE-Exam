@@ -1,6 +1,6 @@
 export type ResourceKey = "wood" | "stone" | "food" | "tools" | "weapons";
 export type JobType = "woodcutting" | "mining" | "farming" | null;
-export type DwarfStatus = "idle" | "working" | "expedition";
+export type DwarfStatus = "idle" | "working" | "expedition" | "crafting";
 export interface Resources { wood: number; stone: number; food: number; tools: number; weapons: number }
 
 export interface Dwarf { 
@@ -20,6 +20,7 @@ export interface ColonyState {
     dwarves: Dwarf[];
     // Reset when rations recover, reaches three before a death
     starvationDays: number;
+    forgeEvents: ForgeEvent[];
 }
 
 export interface ExpeditionResult { 
@@ -34,4 +35,12 @@ export interface Activity {
     day: number; 
     message: string; 
     tone?: "good" | "warning" 
+}
+
+export interface ForgeEvent {
+    id: string;
+    recipe: "tool" | "weapon";
+    dwarfId: string;
+    startDay: number;
+    duration: number;
 }
