@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { beginExpedition } from "../api";
-import { advanceDay, jobLabel } from "../simulation";
+import { advanceDay, equipTool, jobLabel, unequipTool } from "../simulation";
 import type {
   Activity,
   ColonyState,
@@ -216,6 +216,8 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
     expeditionPending,
     togglePaused: () => setPaused((value) => !value),
     assignDwarf,
+    equipTool: (id: string) => setColony((current) => equipTool(current, id)),
+    unequipTool: (id: string) => setColony((current) => unequipTool(current, id)),
     craftTool,
     sendExpedition,
   };
