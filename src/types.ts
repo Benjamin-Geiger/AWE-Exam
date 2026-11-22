@@ -18,7 +18,7 @@ export interface ColonyState {
     day: number; 
     resources: Resources; 
     dwarves: Dwarf[];
-    // Reset when rations recover, reaches three before a death
+    // Consecutive days when rations do not cover the population.
     starvationDays: number;
 }
 
