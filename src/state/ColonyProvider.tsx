@@ -70,6 +70,7 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
     },
   ]);
   const previousColony = useRef(colony);
+  const expeditionLock = useRef(false);
 
   useEffect(() => {
     if (paused) return;
@@ -212,8 +213,15 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
 
   async function sendExpedition(dwarfId: string, destination: string) {
     const dwarf = colony.dwarves.find((item) => item.id === dwarfId);
-    if (!dwarf) return;
+    if (
+      expeditionLock.current ||
+      !dwarf ||
+      dwarf.status === "expedition"
+    ) {
+      return;
+    }
 
+    expeditionLock.current = true;
     setExpeditionPending(true);
     setColony((current) => ({
       ...current,
@@ -263,6 +271,17 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
         ].slice(0, 6),
       );
     } catch (error) {
+      setColony((current) => ({
+        ...current,
+        dwarves: current.dwarves.map((item) =>
+          item.id === dwarf.id
+            ? {
+                ...item,
+                status: item.assignment ? "working" : "idle",
+              }
+            : item,
+        ),
+      }));
       setActivities((current) =>
         [
           {
@@ -277,9 +296,10 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
           ...current,
         ].slice(0, 6),
       );
+    } finally {
+      expeditionLock.current = false;
+      setExpeditionPending(false);
     }
-
-    setExpeditionPending(false);
   }
 
   const value: ColonyContextValue = {
