@@ -11,6 +11,7 @@ import {
   startCrafting,
   unequipTool,
   type RecipeId,
+  STARVATION_DAYS,
 } from "../simulation";
 import type {
   Activity,
@@ -25,7 +26,7 @@ const initialState: ColonyState = {
   resources: {
     wood: 14,
     stone: 9,
-    food: 18,
+    food: 6,
     tools: 1,
     weapons: 0,
   },
@@ -103,8 +104,8 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
       entries.push({
         id: `starvation-${deceased.id}-${colony.day}`,
         day: colony.day,
-        message: `${deceased.name} died after three consecutive days without enough rations.`,
-        tone: "warning",
+        message: `${deceased.name} died after ${STARVATION_DAYS} consecutive days without enough rations.`,
+        tone: "warning" as const,
       });
     }
 

@@ -83,6 +83,7 @@ export const production: Record<Exclude<JobType, null>, Partial<Resources>> = {
 
 // Amount added to harvest if darf has tool
 export const TOOL_BONUS = 1;
+export const STARVATION_DAYS = 3;
 
 // Daily dwarf harvest rate
 export function dwarfOutput(dwarf: Dwarf): Partial<Resources> {
@@ -116,6 +117,16 @@ export function unequipTool(state: ColonyState, dwarfId: string): ColonyState {
   };
 }
 
+export function willStarveNextDay(state: ColonyState): boolean {
+  let availableFood = state.resources.food;
+
+  for (const dwarf of state.dwarves) {
+    availableFood += dwarfOutput(dwarf).food ?? 0;
+  }
+
+  return state.dwarves.length > 0 && availableFood < state.dwarves.length;
+}
+
 export function advanceDay(state: ColonyState): ColonyState {
   const day = state.day + 1;
   let resources = { ...state.resources };
@@ -140,15 +151,11 @@ export function advanceDay(state: ColonyState): ColonyState {
       : dwarf,
   );
 
+  // Count a shortage only if this days food cant feed everyone
+  let starvationDays = dwarves.length > 0 && resources.food < dwarves.length ? state.starvationDays + 1 : 0;
   resources.food = Math.max(0, resources.food - dwarves.length);
-  // Check the remaining rations after production and meals
-  let starvationDays =
-    dwarves.length > 0 && resources.food < dwarves.length
-      ? state.starvationDays + 1
-      : 0;
 
-  // Remove the newest dwarf after three shortage days in a row
-  if (starvationDays >= 3) {
+  if (starvationDays >= STARVATION_DAYS) {
     dwarves = dwarves.slice(0, -1);
     starvationDays = 0;
   }

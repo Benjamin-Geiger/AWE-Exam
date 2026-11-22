@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advanceDay } from "./simulation";
+import { advanceDay, willStarveNextDay } from "./simulation";
 import type { ColonyState } from "./types";
 describe("colony simulation", () => {
   it("produces assigned resources and feeds the company", () => {
@@ -30,6 +30,51 @@ describe("colony simulation", () => {
     });
     expect(recovered.starvationDays).toBe(0);
     expect(recovered.dwarves).toHaveLength(2);
+  });
+
+  it("does not count a shortage when production feeds everyone", () => {
+    const state: ColonyState = {
+      day: 1,
+      resources: { wood: 0, stone: 0, food: 0, tools: 0, weapons: 0 },
+      dwarves: [
+        { id: "d1", name: "Brom", title: "", icon: "", assignment: "farming", status: "working", hasTool: false },
+        { id: "d2", name: "Yrsa", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
+        { id: "d3", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
+      ],
+      starvationDays: 0,
+    };
+
+    const nextDay = advanceDay(state);
+    expect(nextDay.resources.food).toBe(1);
+    expect(nextDay.starvationDays).toBe(0);
+    expect(nextDay.dwarves).toHaveLength(3);
+  });
+
+  it("warns before the first shortage day when next-day food will be short", () => {
+    const state: ColonyState = {
+      day: 1,
+      resources: { wood: 0, stone: 0, food: 0, tools: 0, weapons: 0 },
+      dwarves: [
+        { id: "d1", name: "Brom", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
+      ],
+      starvationDays: 0,
+    };
+
+    expect(willStarveNextDay(state)).toBe(true);
+    expect(advanceDay(state).starvationDays).toBe(1);
+  });
+
+  it("does not warn if next-day production will feed everyone", () => {
+    const state: ColonyState = {
+      day: 1,
+      resources: { wood: 0, stone: 0, food: 0, tools: 0, weapons: 0 },
+      dwarves: [
+        { id: "d1", name: "Brom", title: "", icon: "", assignment: "farming", status: "working", hasTool: false },
+      ],
+      starvationDays: 0,
+    };
+
+    expect(willStarveNextDay(state)).toBe(false);
   });
 
   it("kills the newest dwarf on the third consecutive shortage day", () => {
