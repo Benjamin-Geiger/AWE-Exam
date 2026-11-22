@@ -11,10 +11,10 @@ describe("colony simulation", () => {
   it("counts shortage days after production and meals, and resets when rations recover", () => {
     const state: ColonyState = {
       day: 1,
-      resources: { wood: 0, stone: 0, food: 0, tools: 0 },
+      resources: { wood: 0, stone: 0, food: 0, tools: 0, weapons: 0 },
       dwarves: [
-        { id: "d1", name: "Brom", title: "", icon: "", assignment: null, status: "idle" },
-        { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle" },
+        { id: "d1", name: "Brom", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
+        { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
       ],
       starvationDays: 0,
     };
@@ -34,10 +34,10 @@ describe("colony simulation", () => {
   it("kills the newest dwarf on the third consecutive shortage day", () => {
     const state: ColonyState = {
       day: 1,
-      resources: { wood: 0, stone: 0, food: 0, tools: 0 },
+      resources: { wood: 0, stone: 0, food: 0, tools: 0, weapons: 0 },
       dwarves: [
-        { id: "d1", name: "Brom", title: "", icon: "", assignment: null, status: "idle" },
-        { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle" },
+        { id: "d1", name: "Brom", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
+        { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
       ],
       starvationDays: 0,
     };
@@ -55,10 +55,10 @@ describe("colony simulation", () => {
   it("lets daily food production prevent a shortage", () => {
     const state: ColonyState = {
       day: 1,
-      resources: { wood: 0, stone: 0, food: 0, tools: 0 },
+      resources: { wood: 0, stone: 0, food: 0, tools: 0, weapons: 0 },
       dwarves: [
-        { id: "d1", name: "Brom", title: "", icon: "", assignment: "farming", status: "working" },
-        { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle" },
+        { id: "d1", name: "Brom", title: "", icon: "", assignment: "farming", status: "working", hasTool: false },
+        { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false},
       ],
       starvationDays: 0,
     };
