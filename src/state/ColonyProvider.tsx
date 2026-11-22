@@ -77,6 +77,9 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
     },
   ]);
   const previousColony = useRef(colony);
+  const expeditionLock = useRef(false);
+  // Keep the request ID for retries of the same expedition
+  const expeditionRequests = useRef(new Map<string, string>());
 
   useEffect(() => {
     if (paused) return;
@@ -173,8 +176,20 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
 
   async function sendExpedition(dwarfId: string, destination: string) {
     const dwarf = colony.dwarves.find((item) => item.id === dwarfId);
-    if (!dwarf) return;
+    if (
+      expeditionLock.current ||
+      !dwarf ||
+      dwarf.status === "expedition"
+    ) {
+      return;
+    }
 
+    expeditionLock.current = true;
+    // Match retries by dwarf and destination
+    const requestKey = JSON.stringify([dwarfId, destination]);
+    const requestId =
+      expeditionRequests.current.get(requestKey) ?? crypto.randomUUID();
+    expeditionRequests.current.set(requestKey, requestId);
     setExpeditionPending(true);
     setColony((current) => ({
       ...current,
@@ -192,7 +207,9 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
     ]);
 
     try {
-      const result = await beginExpedition(dwarf.id, destination);
+      const result = await beginExpedition(requestId, dwarf.id, destination);
+      // Start a fresh request after success
+      expeditionRequests.current.delete(requestKey);
 
       setColony((current) => ({
         ...current,
@@ -224,6 +241,17 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
         ].slice(0, 6),
       );
     } catch (error) {
+      setColony((current) => ({
+        ...current,
+        dwarves: current.dwarves.map((item) =>
+          item.id === dwarf.id
+            ? {
+                ...item,
+                status: item.assignment ? "working" : "idle",
+              }
+            : item,
+        ),
+      }));
       setActivities((current) =>
         [
           {
@@ -238,9 +266,10 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
           ...current,
         ].slice(0, 6),
       );
+    } finally {
+      expeditionLock.current = false;
+      setExpeditionPending(false);
     }
-
-    setExpeditionPending(false);
   }
 
   const value: ColonyContextValue = {
