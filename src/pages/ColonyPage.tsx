@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Chronicle } from "../components/Chronicle";
 import { DwarfRoster } from "../components/DwarfRoster";
-import { dwarfOutput, jobLabel, production } from "../simulation";
+import {
+  dwarfOutput,
+  jobLabel,
+  production,
+  willStarveNextDay,
+} from "../simulation";
 import { useColony } from "../state/ColonyContext";
 import type { ResourceKey } from "../types";
 
@@ -43,6 +48,7 @@ export function ColonyPage() {
         onEquip={equipTool}
         onReturn={unequipTool}
         starvationDays={colony.starvationDays}
+        starvationExpected={willStarveNextDay(colony)}
       />
 
       <section className="center-stack">

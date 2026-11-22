@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { beginExpedition } from "../api";
-import { advanceDay, equipTool, jobLabel, unequipTool } from "../simulation";
+import {
+  advanceDay,
+  equipTool,
+  jobLabel,
+  STARVATION_DAYS,
+  unequipTool,
+} from "../simulation";
 import type {
   Activity,
   ColonyState,
@@ -14,7 +20,7 @@ const initialState: ColonyState = {
   resources: {
     wood: 14,
     stone: 9,
-    food: 18,
+    food: 6,
     tools: 1,
     weapons: 0,
   },
@@ -92,7 +98,7 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
         {
           id: `starvation-${deceased.id}-${colony.day}`,
           day: colony.day,
-          message: `${deceased.name} died after three consecutive days without enough rations.`,
+          message: `${deceased.name} died after ${STARVATION_DAYS} consecutive days without enough rations.`,
           tone: "warning" as const,
         },
         ...current,

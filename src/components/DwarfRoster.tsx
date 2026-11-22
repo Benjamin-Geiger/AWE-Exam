@@ -1,4 +1,4 @@
-import { jobLabel } from "../simulation";
+import { jobLabel, STARVATION_DAYS } from "../simulation";
 import type { Dwarf, JobType } from "../types";
 
 const jobs: Exclude<JobType, null>[] = [
@@ -12,12 +12,21 @@ interface Props {
   // num of available tools in storage
   tools: number;
   starvationDays: number;
+  starvationExpected: boolean;
   onAssign: (id: string, job: JobType) => void;
   onEquip: (id: string) => void;
   onReturn: (id: string) => void;
 }
 
-export function DwarfRoster({ dwarves, tools, starvationDays, onAssign, onEquip, onReturn }: Props) {
+export function DwarfRoster({
+  dwarves,
+  tools,
+  starvationDays,
+  starvationExpected,
+  onAssign,
+  onEquip,
+  onReturn,
+}: Props) {
   const presentDwarves = dwarves.filter(
     (dwarf) => dwarf.status !== "expedition",
   ).length;
@@ -40,8 +49,9 @@ export function DwarfRoster({ dwarves, tools, starvationDays, onAssign, onEquip,
   
           const daysUntilStarvation =
             index === dwarves.length - 1 && starvationDays > 0
-              ? 3 - starvationDays
+              ? STARVATION_DAYS - starvationDays
               : null;
+          const isNewestDwarf = index === dwarves.length - 1;
           const specialty = dwarf.specialty
             ? `Skilled in ${jobLabel(dwarf.specialty)}`
             : "Generalist";
@@ -66,7 +76,12 @@ export function DwarfRoster({ dwarves, tools, starvationDays, onAssign, onEquip,
                     ? "⚒️ Carries a tool (+1 / day)"
                     : "No tool"}
                 </p>
-                {daysUntilStarvation !== null && (
+                {isNewestDwarf && starvationExpected && starvationDays === 0 && (
+                  <p className="starvation-warning" role="status">
+                    Starvation may start tomorrow if food doesn't improve
+                  </p>
+                )}
+                {isNewestDwarf && daysUntilStarvation !== null && (
                   <p className="starvation-warning" role="status">
                     Starves in {daysUntilStarvation}{" "}
                     {daysUntilStarvation === 1 ? "day" : "days"} if rations
