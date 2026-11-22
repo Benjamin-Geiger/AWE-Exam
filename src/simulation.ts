@@ -36,6 +36,10 @@ export function craftBlocker(state: ColonyState, recipeId: RecipeId, dwarfId: st
   if (dwarf.status === "expedition") return `${dwarf.name} is on expedition.`;
   if (dwarf.status === "crafting") return `${dwarf.name} is already forging.`;
 
+  for (const [resource, amount] of Object.entries(recipes[recipeId].cost)) {
+    if (state.resources[resource as keyof Resources] < (amount ?? 0)) return `Not enough ${resource}.`;
+  }
+
   return null;
 }
 
