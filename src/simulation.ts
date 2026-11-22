@@ -6,8 +6,9 @@ export const production: Record<Exclude<JobType, null>, Partial<Resources>> = {
 
 export function advanceDay(state: ColonyState): ColonyState {
   const resources = { ...state.resources };
+  let dwarves = state.dwarves;
 
-  state.dwarves.forEach((dwarf) => {
+  dwarves.forEach((dwarf) => {
     if (!dwarf.assignment) return;
 
     const output = production[dwarf.assignment];
@@ -18,9 +19,20 @@ export function advanceDay(state: ColonyState): ColonyState {
 
   });
 
-  resources.food = Math.max(0, resources.food - state.dwarves.length);
+  resources.food = Math.max(0, resources.food - dwarves.length);
+  // Check the remaining rations after production and meals
+  let starvationDays =
+    dwarves.length > 0 && resources.food < dwarves.length
+      ? state.starvationDays + 1
+      : 0;
 
-  return { ...state, day: state.day + 1, resources };
+  // Remove the newest dwarf after three shortage days in a row
+  if (starvationDays >= 3) {
+    dwarves = dwarves.slice(0, -1);
+    starvationDays = 0;
+  }
+
+  return { ...state, day: state.day + 1, resources, dwarves, starvationDays };
 }
 
 export const jobLabel = (job: JobType) => job ? ({ 

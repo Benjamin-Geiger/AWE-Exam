@@ -16,7 +16,9 @@ export interface Dwarf {
 export interface ColonyState { 
     day: number; 
     resources: Resources; 
-    dwarves: Dwarf[] 
+    dwarves: Dwarf[];
+    // Reset when rations recover, reaches three before a death
+    starvationDays: number;
 }
 
 export interface ExpeditionResult { 
