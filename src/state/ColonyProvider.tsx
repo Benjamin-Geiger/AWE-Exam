@@ -2,10 +2,16 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { beginExpedition } from "../api";
 import {
   advanceDay,
+  assignJob,
+  craftBlocker,
   equipTool,
+  isBusy,
   jobLabel,
-  STARVATION_DAYS,
+  recipes,
+  startCrafting,
   unequipTool,
+  type RecipeId,
+  STARVATION_DAYS,
 } from "../simulation";
 import type {
   Activity,
@@ -25,6 +31,7 @@ const initialState: ColonyState = {
     weapons: 0,
   },
   starvationDays: 0,
+  forgeEvents: [],
   dwarves: [
     {
       id: "dwarf-1",
@@ -82,45 +89,51 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(timer);
   }, [paused]);
 
-  // Log the dwarf removed by advanceDay's starvation rule.
   useEffect(() => {
     const previous = previousColony.current;
     previousColony.current = colony;
     if (colony.day === previous.day) return;
 
+    // logs deaths and forge events
+    const entries: Activity[] = [];
+
     const deceased = previous.dwarves.find(
       (dwarf) => !colony.dwarves.some((remaining) => remaining.id === dwarf.id),
     );
-    if (!deceased) return;
+    if (deceased) {
+      entries.push({
+        id: `starvation-${deceased.id}-${colony.day}`,
+        day: colony.day,
+        message: `${deceased.name} died after ${STARVATION_DAYS} consecutive days without enough rations.`,
+        tone: "warning" as const,
+      });
+    }
 
-    setActivities((current) =>
-      [
-        {
-          id: `starvation-${deceased.id}-${colony.day}`,
+    // handle finished or interrupted forge events
+    previous.forgeEvents
+      .filter((event) => !colony.forgeEvents.some((e) => e.id === event.id))
+      .forEach((event) => {
+        const smith = colony.dwarves.find((d) => d.id === event.dwarfId);
+        const label = recipes[event.recipe].label;
+        entries.push({
+          id: `${event.id}-end`,
           day: colony.day,
-          message: `${deceased.name} died after ${STARVATION_DAYS} consecutive days without enough rations.`,
-          tone: "warning" as const,
-        },
-        ...current,
-      ].slice(0, 6),
-    );
+          message: smith
+            ? `${smith.name} finished forging a ${label}.`
+            : `The unfinished ${label} was abandoned. Its materials return to the stores.`,
+          tone: smith ? "good" : "warning",
+        });
+      });
+
+    if (entries.length === 0) return;
+    setActivities((current) => [...entries, ...current].slice(0, 6));
   }, [colony]);
 
   function assignDwarf(id: string, assignment: JobType) {
-    setColony((current) => ({
-      ...current,
-      dwarves: current.dwarves.map((dwarf) =>
-        dwarf.id === id
-          ? {
-              ...dwarf,
-              assignment,
-              status: assignment ? "working" : "idle",
-            }
-          : dwarf,
-      ),
-    }));
-
     const dwarf = colony.dwarves.find((item) => item.id === id);
+    if (!dwarf || isBusy(dwarf)) return;
+
+    setColony((current) => assignJob(current, id, assignment));
     setActivities((current) =>
       [
         {
@@ -133,77 +146,25 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  function craftTool() {
-    if (colony.resources.wood < 3) {
-      setActivities((current) => [
-        {
-          id: crypto.randomUUID(),
-          day: colony.day,
-          message: "The forge needs more timber.",
-          tone: "warning" as const,
-        },
-        ...current,
-      ]);
-      return;
-    }
+  // start forge task, remove materials right away -> result when time passes
+  function craftItem(recipeId: RecipeId, dwarfId: string) {
+    const recipe = recipes[recipeId];
+    const blocker = craftBlocker(colony, recipeId, dwarfId);
+    const smith = colony.dwarves.find((d) => d.id === dwarfId);
 
-    setColony((current) => ({
-      ...current,
-      resources: {
-        ...current.resources,
-        wood: current.resources.wood - 3,
-        stone: current.resources.stone - 2,
-        tools: current.resources.tools + 1,
-      },
-    }));
+    // check crafting eligibility, if valid start crafting 
+    if (!blocker) {
+      setColony((current) => startCrafting(current, recipeId, dwarfId));
+    }
     setActivities((current) =>
       [
         {
           id: crypto.randomUUID(),
           day: colony.day,
-          message: "A sturdy iron tool joins the stores.",
-          tone: "good" as const,
-        },
-        ...current,
-      ].slice(0, 6),
-    );
-  }
-
-  function craftWeapon() {
-    if (
-      colony.resources.stone < 3 ||
-      colony.resources.wood < 1 ||
-      colony.resources.tools < 1
-    ) {
-      setActivities((current) => [
-        {
-          id: crypto.randomUUID(),
-          day: colony.day,
-          message: "Not enough materials for a weapon.",
-          tone: "warning" as const,
-        },
-        ...current,
-      ]);
-      return;
-    }
-
-    setColony((current) => ({
-      ...current,
-      resources: {
-        ...current.resources,
-        stone: current.resources.stone - 3,
-        wood: current.resources.wood - 1,
-        tools: current.resources.tools - 1,
-        weapons: current.resources.weapons + 1,
-      },
-    }));
-    setActivities((current) =>
-      [
-        {
-          id: crypto.randomUUID(),
-          day: colony.day,
-          message: "A stone sword is added to the armoury.",
-          tone: "good" as const,
+          message: blocker
+            ? `Cannot forge a ${recipe.label}: ${blocker}`
+            : `${smith?.name} began forging a ${recipe.label}. Ready on day ${colony.day + recipe.days}.`,
+          tone: blocker ? ("warning" as const) : undefined,
         },
         ...current,
       ].slice(0, 6),
@@ -291,8 +252,7 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
     assignDwarf,
     equipTool: (id: string) => setColony((current) => equipTool(current, id)),
     unequipTool: (id: string) => setColony((current) => unequipTool(current, id)),
-    craftTool,
-    craftWeapon,
+    craftItem,
     sendExpedition,
   };
 
