@@ -16,6 +16,7 @@ const initialState: ColonyState = {
     stone: 9,
     food: 18,
     tools: 1,
+    weapons: 0,
   },
   dwarves: [
     {
@@ -26,6 +27,7 @@ const initialState: ColonyState = {
       assignment: "mining",
       status: "working",
       specialty: "mining",
+      hasTool: false,
     },
     {
       id: "dwarf-2",
@@ -35,6 +37,7 @@ const initialState: ColonyState = {
       assignment: "woodcutting",
       status: "working",
       specialty: "woodcutting",
+      hasTool: false,
     },
     {
       id: "dwarf-3",
@@ -43,6 +46,7 @@ const initialState: ColonyState = {
       icon: "🧔🏽",
       assignment: null,
       status: "idle",
+      hasTool: false,
     },
   ],
 };

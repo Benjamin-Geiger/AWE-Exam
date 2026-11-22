@@ -1,21 +1,50 @@
-import type { ColonyState, JobType, Resources } from "./types";
+import type { ColonyState, Dwarf, JobType, Resources } from "./types";
 
 export const production: Record<Exclude<JobType, null>, Partial<Resources>> = {
   woodcutting: { wood: 3 }, mining: { stone: 2 }, farming: { food: 4 },
 };
 
+// Amount added to harvest if darf has tool
+export const TOOL_BONUS = 1;
+
+// Daily dwarf harvest rate
+export function dwarfOutput(dwarf: Dwarf): Partial<Resources> {
+  if (!dwarf.assignment || dwarf.status === "expedition") return {};
+  const [[resource, base]] = Object.entries(production[dwarf.assignment]);
+  return { [resource]: (base ?? 0) + (dwarf.hasTool ? TOOL_BONUS : 0) };
+}
+
+// Equip tool from storage to a dwarf
+export function equipTool(state: ColonyState, dwarfId: string): ColonyState {
+  const dwarf = state.dwarves.find((d) => d.id === dwarfId);
+  if (!dwarf || dwarf.hasTool || dwarf.status === "expedition" || state.resources.tools < 1) {
+    return state;
+  }
+  return {
+    ...state,
+    resources: { ...state.resources, tools: state.resources.tools - 1 },
+    dwarves: state.dwarves.map((d) => (d.id === dwarfId ? { ...d, hasTool: true } : d)),
+  };
+}
+
+// Return a tool from a dwarf to storage
+export function unequipTool(state: ColonyState, dwarfId: string): ColonyState {
+  const dwarf = state.dwarves.find((d) => d.id === dwarfId);
+  if (!dwarf || !dwarf.hasTool) return state;
+  return {
+    ...state,
+    resources: { ...state.resources, tools: state.resources.tools + 1 },
+    dwarves: state.dwarves.map((d) => (d.id === dwarfId ? { ...d, hasTool: false } : d)),
+  };
+}
+
 export function advanceDay(state: ColonyState): ColonyState {
   const resources = { ...state.resources };
 
   state.dwarves.forEach((dwarf) => {
-    if (!dwarf.assignment) return;
-
-    const output = production[dwarf.assignment];
-
-    Object.entries(output).forEach(([resource, amount]) => {
+    Object.entries(dwarfOutput(dwarf)).forEach(([resource, amount]) => {
       resources[resource as keyof Resources] += amount ?? 0;
     });
-
   });
 
   resources.food = Math.max(0, resources.food - state.dwarves.length);
@@ -23,8 +52,8 @@ export function advanceDay(state: ColonyState): ColonyState {
   return { ...state, day: state.day + 1, resources };
 }
 
-export const jobLabel = (job: JobType) => job ? ({ 
-  woodcutting: "Woodcutting", 
-  mining: "Deep Mining", 
-  farming: "Mushroom Farm" 
+export const jobLabel = (job: JobType) => job ? ({
+  woodcutting: "Woodcutting",
+  mining: "Deep Mining",
+  farming: "Mushroom Farm"
 }[job]) : "Unassigned";
