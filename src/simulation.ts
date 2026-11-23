@@ -21,7 +21,7 @@ export const isBusy = (dwarf: Dwarf) =>
 
 export const forgeCompletionDay = (event: ForgeEvent) => event.startDay + event.duration;
 
-function addResources(resources: Resources, delta: Partial<Resources>, sign: 1 | -1): Resources {
+export function addResources(resources: Resources, delta: Partial<Resources>, sign: 1 | -1): Resources {
   const next = { ...resources };
   Object.entries(delta).forEach(([resource, amount]) => {
     next[resource as keyof Resources] += sign * (amount ?? 0);
