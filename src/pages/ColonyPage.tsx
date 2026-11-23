@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Chronicle } from "../components/Chronicle";
 import { DwarfRoster } from "../components/DwarfRoster";
 import {
+  ATTACK_DESTINATION,
   dwarfOutput,
   foodCost,
   jobLabel,
@@ -103,6 +104,54 @@ export function ColonyPage() {
             </strong>
           </div>
         </section>
+
+        {colony.attack && (
+          <section className="panel production attack">
+            <header>
+              <div>
+                <small>UNDER SIEGE</small>
+                <h2>Village under Attack</h2>
+              </div>
+              <span>resolves each day</span>
+            </header>
+
+            <div className="job-grid">
+              <article>
+                <b>🗡️</b>
+                <h3>Weapons</h3>
+                <p>{colony.resources.weapons} in storage</p>
+                <strong>{colony.attack.weaponsPerDay} Weapons / Day</strong>
+              </article>
+              <article>
+                <b>⏳</b>
+                <h3>Attack Duration</h3>
+                <p>{colony.attack.totalDays} days in total</p>
+                <strong>{colony.attack.daysLeft} days remaining</strong>
+              </article>
+              <article>
+                <b>🪖</b>
+                <h3>Attacker</h3>
+                <p>followed the scout home</p>
+                <strong>Piltovians 🪖</strong>
+              </article>
+            </div>
+
+            <div className="net-line">
+              <span>A DAY WITHOUT ENOUGH WEAPONS: ALL STORES HALVED</span>
+              <strong
+                className={
+                  colony.resources.weapons >= colony.attack.weaponsPerDay
+                    ? "gain"
+                    : "loss"
+                }
+              >
+                {colony.resources.weapons >= colony.attack.weaponsPerDay
+                  ? "Defended today"
+                  : "Plunder ahead"}
+              </strong>
+            </div>
+          </section>
+        )}
       </section>
 
       <aside className="side-stack">
@@ -143,6 +192,9 @@ export function ColonyPage() {
               <option value="crystal-cave">Crystal Cave</option>
               <option value="old-mine">The Old Mine</option>
               <option value="blocked-pass">Blocked Pass</option>
+              <option value={ATTACK_DESTINATION} disabled={!!colony.attack}>
+                Piltover Outpost{colony.attack ? " (under attack)" : ""}
+              </option>
             </select>
           </label>
 

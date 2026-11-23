@@ -6,6 +6,7 @@ import {
   equipTool,
   foodCost,
   recruitSkarner,
+  startAttack,
   startCrafting,
   willStarveNextDay,
 } from "./simulation";
@@ -47,7 +48,7 @@ describe("colony simulation", () => {
       ],
       starvationDays: 0,
       skarnerJoined: false,
-      forgeEvents: [],
+      forgeEvents: [], attack: null, attackOutcome: null,
     };
 
     expect(willStarveNextDay(state)).toBe(true);
@@ -64,7 +65,7 @@ describe("colony simulation", () => {
       dwarves: [],
       starvationDays: 0,
       skarnerJoined: false,
-      forgeEvents: [],
+      forgeEvents: [], attack: null, attackOutcome: null,
     };
 
     expect(recruitSkarner(state, "old-mine")).toBe(state);
@@ -100,7 +101,7 @@ describe("colony simulation", () => {
       ],
       starvationDays: 0,
       skarnerJoined: true,
-      forgeEvents: [],
+      forgeEvents: [], attack: null, attackOutcome: null,
     };
 
     expect(equipTool(state, "skarner")).toBe(state);
@@ -113,7 +114,7 @@ describe("colony simulation", () => {
   });
 
   it("produces assigned resources and feeds the company", () => {
-    const state: ColonyState = { day: 1, resources: { wood: 0, stone: 0, food: 5, tools: 0, weapons: 0 }, dwarves: [{ id: "d1", name: "Brom", title: "", icon: "", assignment: "woodcutting", status: "working", hasTool: false }],  starvationDays: 0, skarnerJoined: false, forgeEvents: [] };
+    const state: ColonyState = { day: 1, resources: { wood: 0, stone: 0, food: 5, tools: 0, weapons: 0 }, dwarves: [{ id: "d1", name: "Brom", title: "", icon: "", assignment: "woodcutting", status: "working", hasTool: false }],  starvationDays: 0, skarnerJoined: false, forgeEvents: [], attack: null, attackOutcome: null };
     expect(advanceDay(state)).toMatchObject({ day: 2, resources: { wood: 3, food: 4 } });
     expect(state.resources.wood).toBe(0);
   });
@@ -128,7 +129,7 @@ describe("colony simulation", () => {
       ],
       starvationDays: 0,
       skarnerJoined: false,
-      forgeEvents: [],
+      forgeEvents: [], attack: null, attackOutcome: null,
     };
 
     const firstShortageDay = advanceDay(state);
@@ -154,7 +155,7 @@ describe("colony simulation", () => {
       ],
       starvationDays: 0,
       skarnerJoined: false,
-      forgeEvents: [],
+      forgeEvents: [], attack: null, attackOutcome: null,
     };
 
     const nextDay = advanceDay(state);
@@ -172,7 +173,7 @@ describe("colony simulation", () => {
       ],
       starvationDays: 0,
       skarnerJoined: false,
-      forgeEvents: [],
+      forgeEvents: [], attack: null, attackOutcome: null,
     };
 
     expect(willStarveNextDay(state)).toBe(true);
@@ -188,7 +189,7 @@ describe("colony simulation", () => {
       ],
       starvationDays: 0,
       skarnerJoined: false,
-      forgeEvents: [],
+      forgeEvents: [], attack: null, attackOutcome: null,
     };
 
     expect(willStarveNextDay(state)).toBe(false);
@@ -204,7 +205,7 @@ describe("colony simulation", () => {
       ],
       starvationDays: 0,
       skarnerJoined: false,
-      forgeEvents: [],
+      forgeEvents: [], attack: null, attackOutcome: null,
     };
 
     const dayOne = advanceDay(state);
@@ -227,12 +228,78 @@ describe("colony simulation", () => {
       ],
       starvationDays: 0,
       skarnerJoined: false,
-      forgeEvents: [],
+      forgeEvents: [], attack: null, attackOutcome: null,
     };
 
     const nextDay = advanceDay(state);
     expect(nextDay.resources.food).toBe(2);
     expect(nextDay.starvationDays).toBe(0);
     expect(nextDay.dwarves).toHaveLength(2);
+  });
+});
+
+describe("piltovian attack", () => {
+  const peace = (overrides: Partial<ColonyState> = {}): ColonyState => ({
+    day: 1,
+    resources: { wood: 9, stone: 7, food: 10, tools: 3, weapons: 6 },
+    dwarves: [],
+    starvationDays: 0,
+    skarnerJoined: false,
+    forgeEvents: [],
+    attack: null,
+    attackOutcome: null,
+    ...overrides,
+  });
+
+  it("starts only after the attack destination and never twice", () => {
+    expect(startAttack(peace(), "old-mine").attack).toBeNull();
+
+    const attacked = startAttack(peace(), "piltover-outpost");
+    expect(attacked.attack).toEqual({ attacker: "Piltovians", weaponsPerDay: 2, daysLeft: 3, totalDays: 3 });
+
+    const running = { ...attacked, attack: { ...attacked.attack!, daysLeft: 1 } };
+    expect(startAttack(running, "piltover-outpost")).toBe(running);
+  });
+
+  it("consumes weapons each day and is defended after the last day", () => {
+    const dayOne = advanceDay(startAttack(peace(), "piltover-outpost"));
+    expect(dayOne.resources.weapons).toBe(4);
+    expect(dayOne.attack?.daysLeft).toBe(2);
+    expect(dayOne.attackOutcome).toBeNull();
+
+    const dayThree = advanceDay(advanceDay(dayOne));
+    expect(dayThree.resources.weapons).toBe(0);
+    expect(dayThree.attack).toBeNull();
+    expect(dayThree.attackOutcome).toEqual({ day: 4, result: "defended" });
+  });
+
+  it("halves all stores and ends the attack when weapons run short", () => {
+    const state = startAttack(
+      peace({
+        resources: { wood: 9, stone: 7, food: 10, tools: 3, weapons: 1 },
+        dwarves: [{ id: "d1", name: "Brom", title: "", icon: "", assignment: null, status: "idle", hasTool: false }],
+      }),
+      "piltover-outpost",
+    );
+
+    const next = advanceDay(state);
+    // halved before meals: food 10 -> 5, then one ration eaten
+    expect(next.resources).toEqual({ wood: 4, stone: 3, food: 4, tools: 1, weapons: 0 });
+    expect(next.attack).toBeNull();
+    expect(next.attackOutcome).toEqual({ day: 2, result: "plundered" });
+  });
+
+  it("counts weapons finished at the forge on the same day", () => {
+    const state = peace({
+      day: 3,
+      resources: { wood: 0, stone: 0, food: 10, tools: 0, weapons: 1 },
+      dwarves: [{ id: "d1", name: "Brom", title: "", icon: "", assignment: null, status: "crafting", hasTool: false }],
+      forgeEvents: [{ id: "forge-d1-1", recipe: "weapon", dwarfId: "d1", startDay: 1, duration: 3 }],
+      attack: { attacker: "Piltovians", weaponsPerDay: 2, daysLeft: 1, totalDays: 3 },
+    });
+
+    const next = advanceDay(state);
+    expect(next.resources.weapons).toBe(0);
+    expect(next.attackOutcome).toEqual({ day: 4, result: "defended" });
   });
 });

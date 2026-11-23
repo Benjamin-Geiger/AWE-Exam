@@ -1,4 +1,4 @@
-import type { ColonyState, Dwarf, ForgeEvent, JobType, Resources } from "./types";
+import type { Attack, AttackOutcome, ColonyState, Dwarf, ForgeEvent, JobType, Resources } from "./types";
 
 export type RecipeId = ForgeEvent["recipe"];
 
@@ -125,6 +125,47 @@ export function recruitSkarner(state: ColonyState, destination: string): ColonyS
   };
 }
 
+// piltover attack stats
+export const ATTACK_DESTINATION = "piltover-outpost";
+export const ATTACK_WEAPONS_PER_DAY = 2;
+export const ATTACK_DAYS = 3;
+
+// there can only be one attack at a time
+export function startAttack(state: ColonyState, destination: string): ColonyState {
+  if (destination !== ATTACK_DESTINATION || state.attack) return state;
+  return {
+    ...state,
+    attack: {
+      attacker: "Piltovians",
+      weaponsPerDay: ATTACK_WEAPONS_PER_DAY,
+      daysLeft: ATTACK_DAYS,
+      totalDays: ATTACK_DAYS,
+    },
+  };
+}
+
+// weapons are consumed per day of attack -> no weapons = failed defense
+export function resolveAttackDay(
+  resources: Resources,
+  attack: Attack,
+  day: number,
+): { resources: Resources; attack: Attack | null; attackOutcome: AttackOutcome | null } {
+  if (resources.weapons >= attack.weaponsPerDay) {
+    const daysLeft = attack.daysLeft - 1;
+    return {
+      resources: { ...resources, weapons: resources.weapons - attack.weaponsPerDay },
+      attack: daysLeft > 0 ? { ...attack, daysLeft } : null,
+      attackOutcome: daysLeft > 0 ? null : { day, result: "defended" },
+    };
+  }
+
+  const plundered = { ...resources };
+  (Object.keys(plundered) as (keyof Resources)[]).forEach((key) => {
+    plundered[key] = Math.floor(plundered[key] / 2);
+  });
+  return { resources: plundered, attack: null, attackOutcome: { day, result: "plundered" } };
+}
+
 // Equip tool from storage to a dwarf
 export function equipTool(state: ColonyState, dwarfId: string): ColonyState {
   const dwarf = state.dwarves.find((d) => d.id === dwarfId);
@@ -193,6 +234,16 @@ export function advanceDay(state: ColonyState): ColonyState {
       : dwarf,
   );
 
+  // siege day after production and forging -> can produce during the day
+  let attack = state.attack;
+  let attackOutcome = state.attackOutcome;
+  if (attack) {
+    const siege = resolveAttackDay(resources, attack, day);
+    resources = siege.resources;
+    attack = siege.attack;
+    attackOutcome = siege.attackOutcome ?? attackOutcome;
+  }
+
   // Count a shortage only if this days food cant feed everyone
   let foodNeeded = 0;
   for (const dwarf of dwarves) {
@@ -213,7 +264,7 @@ export function advanceDay(state: ColonyState): ColonyState {
   });
   forgeEvents = forgeEvents.filter((event) => !orphaned.includes(event));
 
-  return { ...state, day, resources, dwarves, starvationDays, forgeEvents };
+  return { ...state, day, resources, dwarves, starvationDays, forgeEvents, attack, attackOutcome };
 }
 
 export const jobLabel = (job: JobType) => job ? ({

@@ -1,9 +1,9 @@
 import { addResources, recipes } from "./simulation";
-import type { Activity, ColonyState, Dwarf, ForgeEvent, Resources } from "./types";
+import type { Activity, Attack, AttackOutcome, ColonyState, Dwarf, ForgeEvent, Resources } from "./types";
 
 export const SAVE_KEY = "dwarfhold.save";
 // increment if colony state changes
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 interface SaveEnvelope {
   version: number;
@@ -15,6 +15,8 @@ const RESOURCE_KEYS = ["wood", "stone", "food", "tools", "weapons"] as const;
 const JOBS = ["woodcutting", "mining", "farming"] as const;
 const STATUSES = ["idle", "working", "expedition", "crafting"] as const;
 const SPECIES = ["Skarner"] as const;
+const ATTACKERS = ["Piltovians"] as const;
+const ATTACK_RESULTS = ["defended", "plundered"] as const;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -85,6 +87,33 @@ function parseForgeEvent(value: unknown): ForgeEvent | null {
   return { id, recipe: recipe as ForgeEvent["recipe"], dwarfId, startDay, duration };
 }
 
+// running attack, null in peace time -> undefined = invalid data
+function parseAttack(value: unknown): Attack | null | undefined {
+  if (value === null) return null;
+  if (!isRecord(value)) return undefined;
+  const { attacker, weaponsPerDay, daysLeft, totalDays } = value;
+  if (
+    !isOneOf(ATTACKERS, attacker) ||
+    !isCount(weaponsPerDay) ||
+    weaponsPerDay < 1 ||
+    !isCount(totalDays) ||
+    !isCount(daysLeft) ||
+    daysLeft < 1 ||
+    daysLeft > totalDays
+  ) {
+    return undefined;
+  }
+  return { attacker, weaponsPerDay, daysLeft, totalDays };
+}
+
+function parseAttackOutcome(value: unknown): AttackOutcome | null | undefined {
+  if (value === null) return null;
+  if (!isRecord(value)) return undefined;
+  const { day, result } = value;
+  if (!isCount(day) || !isOneOf(ATTACK_RESULTS, result)) return undefined;
+  return { day, result };
+}
+
 function parseList<T>(value: unknown, parseItem: (item: unknown) => T | null): T[] | null {
   if (!Array.isArray(value)) return null;
   const items = value.map(parseItem);
@@ -100,7 +129,10 @@ function parseColony(value: unknown): ColonyState | null {
   const resources = parseResources(value.resources);
   const dwarves = parseList(value.dwarves, parseDwarf);
   const forgeEvents = parseList(value.forgeEvents, parseForgeEvent);
+  const attack = parseAttack(value.attack);
+  const attackOutcome = parseAttackOutcome(value.attackOutcome);
   if (!resources || !dwarves || !forgeEvents) return null;
+  if (attack === undefined || attackOutcome === undefined) return null;
 
   const ids = new Set(dwarves.map((dwarf) => dwarf.id));
   if (ids.size !== dwarves.length) return null;
@@ -121,7 +153,16 @@ function parseColony(value: unknown): ColonyState | null {
     return null;
   }
 
-  return { day, resources, dwarves, starvationDays, skarnerJoined, forgeEvents };
+  return {
+    day,
+    resources,
+    dwarves,
+    starvationDays,
+    skarnerJoined,
+    forgeEvents,
+    attack,
+    attackOutcome,
+  };
 }
 
 export function serializeSave(colony: ColonyState): string {
