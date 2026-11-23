@@ -3,6 +3,7 @@ import { Chronicle } from "../components/Chronicle";
 import { DwarfRoster } from "../components/DwarfRoster";
 import {
   dwarfOutput,
+  foodCost,
   jobLabel,
   production,
   willStarveNextDay,
@@ -23,6 +24,11 @@ export function ColonyPage() {
   const [destination, setDestination] = useState("crystal-cave");
   const [expeditionDwarf, setExpeditionDwarf] = useState("dwarf-3");
 
+  let foodNeeded = 0;
+  for (const dwarf of colony.dwarves) {
+    foodNeeded += foodCost(dwarf);
+  }
+
   const dailyOutput = colony.dwarves.reduce<Record<ResourceKey, number>>(
     (total, dwarf) => {
       Object.entries(dwarfOutput(dwarf)).forEach(([resource, amount]) => {
@@ -33,7 +39,7 @@ export function ColonyPage() {
     {
       wood: 0,
       stone: 0,
-      food: -colony.dwarves.length,
+      food: -foodNeeded,
       tools: 0,
       weapons: 0,
     },

@@ -8,6 +8,7 @@ export interface Dwarf {
      name: string; 
      title: string; 
      icon: string; 
+     species?: "Skarner";
      assignment: JobType; 
      status: DwarfStatus; 
      specialty?: Exclude<JobType, null>;

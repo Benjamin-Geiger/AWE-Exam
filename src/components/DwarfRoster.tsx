@@ -69,7 +69,7 @@ export function DwarfRoster({
               <div className="dwarf-details">
                 <h3>{dwarf.name}</h3>
                 <p>
-                  {dwarf.title} · {specialty}
+                  {dwarf.species === "Skarner" ? "Crystal scorpion" : dwarf.title} · {specialty}
                 </p>
                 <p className="tool-line">
                   {dwarf.hasTool
