@@ -3,7 +3,7 @@ import type { Activity, ColonyState, Dwarf, ForgeEvent, Resources } from "./type
 
 export const SAVE_KEY = "dwarfhold.save";
 // increment if colony state changes
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 interface SaveEnvelope {
   version: number;
@@ -14,6 +14,7 @@ interface SaveEnvelope {
 const RESOURCE_KEYS = ["wood", "stone", "food", "tools", "weapons"] as const;
 const JOBS = ["woodcutting", "mining", "farming"] as const;
 const STATUSES = ["idle", "working", "expedition", "crafting"] as const;
+const SPECIES = ["Skarner"] as const;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -42,12 +43,13 @@ function parseResources(value: unknown): Resources | null {
 
 function parseDwarf(value: unknown): Dwarf | null {
   if (!isRecord(value)) return null;
-  const { id, name, title, icon, assignment, status, specialty, hasTool } = value;
+  const { id, name, title, icon, species, assignment, status, specialty, hasTool } = value;
   if (
     typeof id !== "string" ||
     typeof name !== "string" ||
     typeof title !== "string" ||
     typeof icon !== "string" ||
+    !(species === undefined || isOneOf(SPECIES, species)) ||
     !(assignment === null || isOneOf(JOBS, assignment)) ||
     !isOneOf(STATUSES, status) ||
     !(specialty === undefined || isOneOf(JOBS, specialty)) ||
@@ -60,6 +62,7 @@ function parseDwarf(value: unknown): Dwarf | null {
     name,
     title,
     icon,
+    ...(species ? { species } : {}),
     assignment,
     status,
     ...(specialty ? { specialty } : {}),
@@ -90,8 +93,9 @@ function parseList<T>(value: unknown, parseItem: (item: unknown) => T | null): T
 
 function parseColony(value: unknown): ColonyState | null {
   if (!isRecord(value)) return null;
-  const { day, starvationDays } = value;
+  const { day, starvationDays, skarnerJoined } = value;
   if (!isCount(day) || day < 1 || !isCount(starvationDays)) return null;
+  if (typeof skarnerJoined !== "boolean") return null;
 
   const resources = parseResources(value.resources);
   const dwarves = parseList(value.dwarves, parseDwarf);
@@ -102,7 +106,22 @@ function parseColony(value: unknown): ColonyState | null {
   if (ids.size !== dwarves.length) return null;
   if (!forgeEvents.every((event) => ids.has(event.dwarfId))) return null;
 
-  return { day, resources, dwarves, starvationDays, forgeEvents };
+  // check skaners requirements
+  const skarners = dwarves.filter((dwarf) => dwarf.species === "Skarner");
+  if (skarners.length > 1) return null;
+  if (skarners.length === 1 && !skarnerJoined) return null;
+  if (
+    skarners.some(
+      (skarner) =>
+        skarner.hasTool ||
+        skarner.status === "crafting" ||
+        forgeEvents.some((event) => event.dwarfId === skarner.id),
+    )
+  ) {
+    return null;
+  }
+
+  return { day, resources, dwarves, starvationDays, skarnerJoined, forgeEvents };
 }
 
 export function serializeSave(colony: ColonyState): string {
