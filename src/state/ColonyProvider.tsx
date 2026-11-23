@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { beginExpedition } from "../api";
+import { loadGame, saveGame } from "../persistence";
 import {
   advanceDay,
   assignJob,
@@ -66,20 +67,28 @@ const initialState: ColonyState = {
 };
 
 export function ColonyProvider({ children }: { children: ReactNode }) {
-  const [colony, setColony] = useState(initialState);
+  const [restored] = useState(() => loadGame(initialState));
+  const [colony, setColony] = useState(restored.colony);
   const [paused, setPaused] = useState(false);
   const [expeditionPending, setExpeditionPending] = useState(false);
-  const [activities, setActivities] = useState<Activity[]>([
-    {
-      id: "welcome",
-      day: 12,
-      message: "The forge fires are lit. Stonehome wakes.",
-    },
-  ]);
+  const [activities, setActivities] = useState<Activity[]>(() =>
+    [
+      ...restored.notices,
+      {
+        id: "welcome",
+        day: restored.colony.day,
+        message: "The forge fires are lit. Stonehome wakes.",
+      },
+    ].slice(0, 6),
+  );
   const previousColony = useRef(colony);
   const expeditionLock = useRef(false);
   // Keep the request ID for retries of the same expedition
   const expeditionRequests = useRef(new Map<string, string>());
+
+  useEffect(() => {
+    saveGame(colony);
+  }, [colony]);
 
   useEffect(() => {
     if (paused) return;

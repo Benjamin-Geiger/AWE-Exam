@@ -13,3 +13,4 @@
 .smith-list{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .smith-list button{border:0;background:#c18b3f;color:#160f08;padding:8px 11px;font:700 11px Barlow Condensed;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
 .smith-list p{font:12px Barlow Condensed;color:#d87f63;margin:0}
+.forge-note{grid-column:1/-1;margin:0;font:13px Barlow Condensed;color:#d8b98a;letter-spacing:.03em}
