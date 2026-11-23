@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { advanceDay, dwarfOutput, foodCost, recruitSkarner, willStarveNextDay } from "./simulation";
+import {
+  advanceDay,
+  craftBlocker,
+  dwarfOutput,
+  equipTool,
+  foodCost,
+  recruitSkarner,
+  startCrafting,
+  willStarveNextDay,
+} from "./simulation";
 import type { ColonyState } from "./types";
 describe("colony simulation", () => {
-  it("uses Skarners work rates and food cost", () => {
+  it("uses Skarner work rates and food cost", () => {
     const skarner = {
       id: "skarner",
       name: "Skarner",
@@ -20,7 +29,7 @@ describe("colony simulation", () => {
     expect(dwarfOutput({ ...skarner, assignment: "farming" })).toEqual({});
   });
 
-  it("uses Skarners food cost for meals and starvation forecasts", () => {
+  it("uses Skarner food cost for meals and starvation forecasts", () => {
     const state: ColonyState = {
       day: 1,
       resources: { wood: 0, stone: 0, food: 1, tools: 0, weapons: 0 },
@@ -48,7 +57,7 @@ describe("colony simulation", () => {
     });
   });
 
-  it("recruits Skarners only once from the Crystal Cave", () => {
+  it("recruits Skarner only once from the Crystal Cave", () => {
     const state: ColonyState = {
       day: 1,
       resources: { wood: 0, stone: 0, food: 5, tools: 0, weapons: 0 },
@@ -71,6 +80,36 @@ describe("colony simulation", () => {
     const secondAttempt = recruitSkarner(afterDeath, "crystal-cave");
     expect(secondAttempt.dwarves).toHaveLength(0);
     expect(secondAttempt.skarnerJoined).toBe(true);
+  });
+
+  it("prevents Skarner from equipping tools or starting forge tasks", () => {
+    const state: ColonyState = {
+      day: 1,
+      resources: { wood: 10, stone: 10, food: 5, tools: 1, weapons: 0 },
+      dwarves: [
+        {
+          id: "skarner",
+          name: "Skarner",
+          title: "",
+          icon: "🦂",
+          species: "Skarner",
+          assignment: null,
+          status: "idle",
+          hasTool: false,
+        },
+      ],
+      starvationDays: 0,
+      skarnerJoined: true,
+      forgeEvents: [],
+    };
+
+    expect(equipTool(state, "skarner")).toBe(state);
+    expect(craftBlocker(state, "tool", "skarner")).toBe(
+      "Claws cannot use the forge.",
+    );
+    expect(startCrafting(state, "tool", "skarner")).toBe(state);
+    expect(state.resources.tools).toBe(1);
+    expect(state.resources.wood).toBe(10);
   });
 
   it("produces assigned resources and feeds the company", () => {

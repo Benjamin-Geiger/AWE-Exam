@@ -33,6 +33,7 @@ function addResources(resources: Resources, delta: Partial<Resources>, sign: 1 |
 export function craftBlocker(state: ColonyState, recipeId: RecipeId, dwarfId: string): string | null {
   const dwarf = state.dwarves.find((d) => d.id === dwarfId);
   if (!dwarf) return "Choose a dwarf.";
+  if (dwarf.species === "Skarner") return "Claws cannot use the forge.";
   if (dwarf.status === "expedition") return `${dwarf.name} is on expedition.`;
   if (dwarf.status === "crafting") return `${dwarf.name} is already forging.`;
 
@@ -90,10 +91,9 @@ export const foodCost = (dwarf: Dwarf) => dwarf.species === "Skarner" ? 2 : 1;
 // Daily dwarf harvest rate
 export function dwarfOutput(dwarf: Dwarf): Partial<Resources> {
   // Only dwarves working a job produce resources
-  // Skarner cannot use tools so we dont have a tool bonus for them
   if (!dwarf.assignment || dwarf.status !== "working") return {};
   if (dwarf.species === "Skarner") {
-    // Skarners are skilled at wood and stone but cannot farm
+    // Skarner claws are great at wood and stone harvest but cannot farm
     if (dwarf.assignment === "farming") return {};
     const resource = dwarf.assignment === "woodcutting" ? "wood" : "stone";
     const base = dwarf.assignment === "woodcutting" ? 5 : 6;
@@ -104,7 +104,7 @@ export function dwarfOutput(dwarf: Dwarf): Partial<Resources> {
 }
 
 export function recruitSkarner(state: ColonyState, destination: string): ColonyState {
-if (destination !== "crystal-cave" || state.skarnerJoined) return state;
+  if (destination !== "crystal-cave" || state.skarnerJoined) return state;
 
   return {
     ...state,
@@ -128,7 +128,13 @@ if (destination !== "crystal-cave" || state.skarnerJoined) return state;
 // Equip tool from storage to a dwarf
 export function equipTool(state: ColonyState, dwarfId: string): ColonyState {
   const dwarf = state.dwarves.find((d) => d.id === dwarfId);
-  if (!dwarf || dwarf.hasTool || isBusy(dwarf) || state.resources.tools < 1) {
+  if (
+    !dwarf ||
+    dwarf.species === "Skarner" ||
+    dwarf.hasTool ||
+    isBusy(dwarf) ||
+    state.resources.tools < 1
+  ) {
     return state;
   }
   return {

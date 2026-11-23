@@ -21,7 +21,7 @@ export interface ColonyState {
     dwarves: Dwarf[];
     // Consecutive days when rations do not cover the population.
     starvationDays: number;
-    // Keep recruitment one-time even if Renraks later dies.
+    // Keep recruitment one-time even if Skarner later dies.
     skarnerJoined: boolean;
     forgeEvents: ForgeEvent[];
 }
