@@ -103,6 +103,28 @@ export function dwarfOutput(dwarf: Dwarf): Partial<Resources> {
   return { [resource]: (base ?? 0) + (dwarf.hasTool ? TOOL_BONUS : 0) };
 }
 
+export function recruitSkarner(state: ColonyState, destination: string): ColonyState {
+if (destination !== "crystal-cave" || state.skarnerJoined) return state;
+
+  return {
+    ...state,
+    skarnerJoined: true,
+    dwarves: [
+      ...state.dwarves,
+      {
+        id: "skarner",
+        name: "Skarner",
+        title: "Crystal Cave survivor",
+        icon: "🦂",
+        species: "Skarner",
+        assignment: null,
+        status: "idle",
+        hasTool: false,
+      },
+    ],
+  };
+}
+
 // Equip tool from storage to a dwarf
 export function equipTool(state: ColonyState, dwarfId: string): ColonyState {
   const dwarf = state.dwarves.find((d) => d.id === dwarfId);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advanceDay, dwarfOutput, foodCost, willStarveNextDay } from "./simulation";
+import { advanceDay, dwarfOutput, foodCost, recruitSkarner, willStarveNextDay } from "./simulation";
 import type { ColonyState } from "./types";
 describe("colony simulation", () => {
   it("uses Skarners work rates and food cost", () => {
@@ -37,6 +37,7 @@ describe("colony simulation", () => {
         },
       ],
       starvationDays: 0,
+      skarnerJoined: false,
       forgeEvents: [],
     };
 
@@ -47,8 +48,33 @@ describe("colony simulation", () => {
     });
   });
 
+  it("recruits Skarners only once from the Crystal Cave", () => {
+    const state: ColonyState = {
+      day: 1,
+      resources: { wood: 0, stone: 0, food: 5, tools: 0, weapons: 0 },
+      dwarves: [],
+      starvationDays: 0,
+      skarnerJoined: false,
+      forgeEvents: [],
+    };
+
+    expect(recruitSkarner(state, "old-mine")).toBe(state);
+
+    const recruited = recruitSkarner(state, "crystal-cave");
+    expect(recruited.skarnerJoined).toBe(true);
+    expect(recruited.dwarves.map((dwarf) => dwarf.id)).toEqual(["skarner"]);
+
+    const afterDeath = {
+      ...recruited,
+      dwarves: [],
+    };
+    const secondAttempt = recruitSkarner(afterDeath, "crystal-cave");
+    expect(secondAttempt.dwarves).toHaveLength(0);
+    expect(secondAttempt.skarnerJoined).toBe(true);
+  });
+
   it("produces assigned resources and feeds the company", () => {
-    const state: ColonyState = { day: 1, resources: { wood: 0, stone: 0, food: 5, tools: 0, weapons: 0 }, dwarves: [{ id: "d1", name: "Brom", title: "", icon: "", assignment: "woodcutting", status: "working", hasTool: false }],  starvationDays: 0, forgeEvents: [] };
+    const state: ColonyState = { day: 1, resources: { wood: 0, stone: 0, food: 5, tools: 0, weapons: 0 }, dwarves: [{ id: "d1", name: "Brom", title: "", icon: "", assignment: "woodcutting", status: "working", hasTool: false }],  starvationDays: 0, skarnerJoined: false, forgeEvents: [] };
     expect(advanceDay(state)).toMatchObject({ day: 2, resources: { wood: 3, food: 4 } });
     expect(state.resources.wood).toBe(0);
   });
@@ -62,6 +88,7 @@ describe("colony simulation", () => {
         { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
       ],
       starvationDays: 0,
+      skarnerJoined: false,
       forgeEvents: [],
     };
 
@@ -87,6 +114,7 @@ describe("colony simulation", () => {
         { id: "d3", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
       ],
       starvationDays: 0,
+      skarnerJoined: false,
       forgeEvents: [],
     };
 
@@ -104,6 +132,7 @@ describe("colony simulation", () => {
         { id: "d1", name: "Brom", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
       ],
       starvationDays: 0,
+      skarnerJoined: false,
       forgeEvents: [],
     };
 
@@ -119,6 +148,7 @@ describe("colony simulation", () => {
         { id: "d1", name: "Brom", title: "", icon: "", assignment: "farming", status: "working", hasTool: false },
       ],
       starvationDays: 0,
+      skarnerJoined: false,
       forgeEvents: [],
     };
 
@@ -134,6 +164,7 @@ describe("colony simulation", () => {
         { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false },
       ],
       starvationDays: 0,
+      skarnerJoined: false,
       forgeEvents: [],
     };
 
@@ -156,6 +187,7 @@ describe("colony simulation", () => {
         { id: "d2", name: "Dori", title: "", icon: "", assignment: null, status: "idle", hasTool: false},
       ],
       starvationDays: 0,
+      skarnerJoined: false,
       forgeEvents: [],
     };
 

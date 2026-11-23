@@ -12,6 +12,7 @@ import {
   unequipTool,
   type RecipeId,
   STARVATION_DAYS,
+  recruitSkarner,
 } from "../simulation";
 import type {
   Activity,
@@ -31,6 +32,7 @@ const initialState: ColonyState = {
     weapons: 0,
   },
   starvationDays: 0,
+  skarnerJoined: false,
   forgeEvents: [],
   dwarves: [
     {
@@ -210,31 +212,40 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
       const result = await beginExpedition(requestId, dwarf.id, destination);
       // Start a fresh request after success
       expeditionRequests.current.delete(requestKey);
+      const recruitedSkarner =
+        destination === "crystal-cave" && !colony.skarnerJoined;
 
-      setColony((current) => ({
-        ...current,
-        resources: Object.entries(result.rewards).reduce(
-          (all, [key, amount]) => ({
-            ...all,
-            [key]: all[key as ResourceKey] + (amount ?? 0),
-          }),
-          current.resources,
+      setColony((current) =>
+        recruitSkarner(
+          {
+            ...current,
+            resources: Object.entries(result.rewards).reduce(
+              (all, [key, amount]) => ({
+                ...all,
+                [key]: all[key as ResourceKey] + (amount ?? 0),
+              }),
+              current.resources,
+            ),
+            dwarves: current.dwarves.map((item) =>
+              item.id === dwarf.id
+                ? {
+                    ...item,
+                    status: item.assignment ? "working" : "idle",
+                  }
+                : item,
+            ),
+          },
+          destination,
         ),
-        dwarves: current.dwarves.map((item) =>
-          item.id === dwarf.id
-            ? {
-                ...item,
-                status: item.assignment ? "working" : "idle",
-              }
-            : item,
-        ),
-      }));
+      );
       setActivities((current) =>
         [
           {
             id: result.expeditionId,
             day: colony.day,
-            message: result.message,
+            message: recruitedSkarner
+              ? `${result.message} Skarner joined the hold.`
+              : result.message,
             tone: "good" as const,
           },
           ...current,
