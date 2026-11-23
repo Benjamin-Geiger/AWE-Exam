@@ -14,6 +14,10 @@ import {
   type RecipeId,
   STARVATION_DAYS,
   recruitSkarner,
+  startAttack,
+  ATTACK_DAYS,
+  ATTACK_DESTINATION,
+  ATTACK_WEAPONS_PER_DAY,
 } from "../simulation";
 import type {
   Activity,
@@ -35,6 +39,8 @@ const initialState: ColonyState = {
   starvationDays: 0,
   skarnerJoined: false,
   forgeEvents: [],
+  attack: null,
+  attackOutcome: null,
   dwarves: [
     {
       id: "dwarf-1",
@@ -139,6 +145,27 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
         });
       });
 
+    // siege progress and result chronicles
+    if (previous.attack && colony.attack) {
+      entries.push({
+        id: `attack-day-${colony.day}`,
+        day: colony.day,
+        message: `Defenders used ${colony.attack.weaponsPerDay} weapons. ${colony.attack.daysLeft} day(s) of siege remain.`,
+      });
+    }
+    const outcome = colony.attackOutcome;
+    if (outcome && outcome.day !== previous.attackOutcome?.day) {
+      entries.push({
+        id: `attack-${outcome.result}-${outcome.day}`,
+        day: colony.day,
+        message:
+          outcome.result === "defended"
+            ? "Stonehome held! The Piltovians retreated from the gates."
+            : "Not enough weapons: the Piltovians plundered Stonehome. All stores were halved.",
+        tone: outcome.result === "defended" ? "good" : "warning",
+      });
+    }
+
     if (entries.length === 0) return;
     setActivities((current) => [...entries, ...current].slice(0, 6));
   }, [colony]);
@@ -190,7 +217,9 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
     if (
       expeditionLock.current ||
       !dwarf ||
-      dwarf.status === "expedition"
+      dwarf.status === "expedition" ||
+      // only one attack at a time
+      (destination === ATTACK_DESTINATION && colony.attack)
     ) {
       return;
     }
@@ -223,9 +252,11 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
       expeditionRequests.current.delete(requestKey);
       const recruitedSkarner =
         destination === "crystal-cave" && !colony.skarnerJoined;
+      const attacked = destination === ATTACK_DESTINATION;
 
       setColony((current) =>
-        recruitSkarner(
+        startAttack(
+          recruitSkarner(
           {
             ...current,
             resources: Object.entries(result.rewards).reduce(
@@ -245,6 +276,8 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
             ),
           },
           destination,
+          ),
+          destination,
         ),
       );
       setActivities((current) =>
@@ -254,8 +287,10 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
             day: colony.day,
             message: recruitedSkarner
               ? `${result.message} Skarner joined the hold.`
-              : result.message,
-            tone: "good" as const,
+              : attacked
+                ? `${result.message} The Piltovians attack for ${ATTACK_DAYS} days and need ${ATTACK_WEAPONS_PER_DAY} weapons per day.`
+                : result.message,
+            tone: attacked ? ("warning" as const) : ("good" as const),
           },
           ...current,
         ].slice(0, 6),

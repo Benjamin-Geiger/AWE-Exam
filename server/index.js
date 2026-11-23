@@ -10,6 +10,7 @@ const expeditionRequests = new Map();
 const outcomes = {
   "crystal-cave": { rewards: { stone: 8, tools: 1 }, message: "The scout found a crystal seam and an abandoned mason's tool." },
   "old-mine": { rewards: { stone: 12, wood: 2 }, message: "The old mine still holds good stone and usable supports." },
+  "piltover-outpost": { rewards: { tools: 5 }, message: "The scout slipped out of Piltover Outpost, but Piltovian soldiers followed the tracks back to Stonehome!" },
 };
 
 app.use(cors()); app.use(express.json());
