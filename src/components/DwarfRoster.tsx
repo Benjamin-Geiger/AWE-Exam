@@ -71,6 +71,12 @@ export function DwarfRoster({
                 <p>
                   {dwarf.species === "Skarner" ? "Crystal scorpion" : dwarf.title} · {specialty}
                 </p>
+                {dwarf.species === "Skarner" && (
+                  <p className="species-info">
+                    Wood +5/day · Stone +6/day · Mushrooms +0/day · Eats 2
+                    food/day
+                  </p>
+                )}
                 <p className="tool-line">
                   {dwarf.species === "Skarner"
                     ? "Claws cannot use tools"
