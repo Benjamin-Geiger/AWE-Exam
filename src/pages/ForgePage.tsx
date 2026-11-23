@@ -9,24 +9,28 @@ export function ForgePage() {
 
   function smithList(recipeId: RecipeId) {
     if (picking !== recipeId) return null;
-    const eligible = colony.dwarves.filter(
-      (dwarf) => craftBlocker(colony, recipeId, dwarf.id) === null,
-    );
+    const eligible = colony.dwarves.map((dwarf) => ({
+      dwarf,
+      blocker: craftBlocker(colony, recipeId, dwarf.id),
+    }));
 
     return (
       <div className="smith-list">
         {eligible.length === 0 ? (
           <p>No dwarf can forge this right now.</p>
         ) : (
-          eligible.map((dwarf) => (
+          eligible.map(({ dwarf, blocker }) => (
             <button
               key={dwarf.id}
+              disabled={blocker !== null}
+              title={blocker ?? undefined}
               onClick={() => {
                 craftItem(recipeId, dwarf.id);
                 setPicking(null);
               }}
             >
               {dwarf.icon} {dwarf.name}
+              {blocker && <span> — {blocker}</span>}
             </button>
           ))
         )}

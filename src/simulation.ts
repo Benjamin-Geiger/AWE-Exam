@@ -33,6 +33,7 @@ function addResources(resources: Resources, delta: Partial<Resources>, sign: 1 |
 export function craftBlocker(state: ColonyState, recipeId: RecipeId, dwarfId: string): string | null {
   const dwarf = state.dwarves.find((d) => d.id === dwarfId);
   if (!dwarf) return "Choose a dwarf.";
+  if (dwarf.species === "Skarner") return "Claws cannot use the forge.";
   if (dwarf.status === "expedition") return `${dwarf.name} is on expedition.`;
   if (dwarf.status === "crafting") return `${dwarf.name} is already forging.`;
 
@@ -85,18 +86,55 @@ export const production: Record<Exclude<JobType, null>, Partial<Resources>> = {
 export const TOOL_BONUS = 1;
 export const STARVATION_DAYS = 3;
 
+export const foodCost = (dwarf: Dwarf) => dwarf.species === "Skarner" ? 2 : 1;
+
 // Daily dwarf harvest rate
 export function dwarfOutput(dwarf: Dwarf): Partial<Resources> {
   // Only dwarves working a job produce resources
   if (!dwarf.assignment || dwarf.status !== "working") return {};
+  if (dwarf.species === "Skarner") {
+    // Skarner claws are great at wood and stone harvest but cannot farm
+    if (dwarf.assignment === "farming") return {};
+    const resource = dwarf.assignment === "woodcutting" ? "wood" : "stone";
+    const base = dwarf.assignment === "woodcutting" ? 5 : 6;
+    return { [resource]: base };
+  }
   const [[resource, base]] = Object.entries(production[dwarf.assignment]);
   return { [resource]: (base ?? 0) + (dwarf.hasTool ? TOOL_BONUS : 0) };
+}
+
+export function recruitSkarner(state: ColonyState, destination: string): ColonyState {
+  if (destination !== "crystal-cave" || state.skarnerJoined) return state;
+
+  return {
+    ...state,
+    skarnerJoined: true,
+    dwarves: [
+      ...state.dwarves,
+      {
+        id: "skarner",
+        name: "Skarner",
+        title: "Crystal Cave survivor",
+        icon: "🦂",
+        species: "Skarner",
+        assignment: null,
+        status: "idle",
+        hasTool: false,
+      },
+    ],
+  };
 }
 
 // Equip tool from storage to a dwarf
 export function equipTool(state: ColonyState, dwarfId: string): ColonyState {
   const dwarf = state.dwarves.find((d) => d.id === dwarfId);
-  if (!dwarf || dwarf.hasTool || isBusy(dwarf) || state.resources.tools < 1) {
+  if (
+    !dwarf ||
+    dwarf.species === "Skarner" ||
+    dwarf.hasTool ||
+    isBusy(dwarf) ||
+    state.resources.tools < 1
+  ) {
     return state;
   }
   return {
@@ -124,7 +162,11 @@ export function willStarveNextDay(state: ColonyState): boolean {
     availableFood += dwarfOutput(dwarf).food ?? 0;
   }
 
-  return state.dwarves.length > 0 && availableFood < state.dwarves.length;
+  let foodNeeded = 0;
+  for (const dwarf of state.dwarves) {
+    foodNeeded += foodCost(dwarf);
+  }
+  return foodNeeded > 0 && availableFood < foodNeeded;
 }
 
 export function advanceDay(state: ColonyState): ColonyState {
@@ -152,8 +194,12 @@ export function advanceDay(state: ColonyState): ColonyState {
   );
 
   // Count a shortage only if this days food cant feed everyone
-  let starvationDays = dwarves.length > 0 && resources.food < dwarves.length ? state.starvationDays + 1 : 0;
-  resources.food = Math.max(0, resources.food - dwarves.length);
+  let foodNeeded = 0;
+  for (const dwarf of dwarves) {
+    foodNeeded += foodCost(dwarf);
+  }
+  let starvationDays = foodNeeded > 0 && resources.food < foodNeeded ? state.starvationDays + 1 : 0;
+  resources.food = Math.max(0, resources.food - foodNeeded);
 
   if (starvationDays >= STARVATION_DAYS) {
     dwarves = dwarves.slice(0, -1);

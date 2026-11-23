@@ -3,6 +3,7 @@ import { Chronicle } from "../components/Chronicle";
 import { DwarfRoster } from "../components/DwarfRoster";
 import {
   dwarfOutput,
+  foodCost,
   jobLabel,
   production,
   willStarveNextDay,
@@ -23,6 +24,11 @@ export function ColonyPage() {
   const [destination, setDestination] = useState("crystal-cave");
   const [expeditionDwarf, setExpeditionDwarf] = useState("dwarf-3");
 
+  let foodNeeded = 0;
+  for (const dwarf of colony.dwarves) {
+    foodNeeded += foodCost(dwarf);
+  }
+
   const dailyOutput = colony.dwarves.reduce<Record<ResourceKey, number>>(
     (total, dwarf) => {
       Object.entries(dwarfOutput(dwarf)).forEach(([resource, amount]) => {
@@ -33,7 +39,7 @@ export function ColonyPage() {
     {
       wood: 0,
       stone: 0,
-      food: -colony.dwarves.length,
+      food: -foodNeeded,
       tools: 0,
       weapons: 0,
     },
@@ -62,27 +68,31 @@ export function ColonyPage() {
           </header>
 
           <div className="job-grid">
-            {(["woodcutting", "mining", "farming"] as const).map((job) => (
-              <article key={job}>
-                <b>
-                  {job === "woodcutting"
-                    ? "🌲"
-                    : job === "mining"
-                      ? "⛏️"
-                      : "🍄"}
-                </b>
-                <h3>{jobLabel(job)}</h3>
-                <p>
-                  {
-                    colony.dwarves.filter(
-                      (dwarf) => dwarf.assignment === job,
-                    ).length
-                  }{" "}
-                  assigned
-                </p>
-                <strong>+{Object.values(production[job])[0]} / day</strong>
-              </article>
-            ))}
+            {(["woodcutting", "mining", "farming"] as const).map((job) => {
+              const resource = Object.keys(production[job])[0] as ResourceKey;
+              const assigned = colony.dwarves.filter(
+                (dwarf) => dwarf.assignment === job,
+              );
+              const output = assigned.reduce(
+                (total, dwarf) => total + (dwarfOutput(dwarf)[resource] ?? 0),
+                0,
+              );
+
+              return (
+                <article key={job}>
+                  <b>
+                    {job === "woodcutting"
+                      ? "🌲"
+                      : job === "mining"
+                        ? "⛏️"
+                        : "🍄"}
+                  </b>
+                  <h3>{jobLabel(job)}</h3>
+                  <p>{assigned.length} assigned</p>
+                  <strong>+{output} / day total</strong>
+                </article>
+              );
+            })}
           </div>
 
           <div className="net-line">

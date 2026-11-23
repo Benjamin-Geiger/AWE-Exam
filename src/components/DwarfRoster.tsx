@@ -69,10 +69,18 @@ export function DwarfRoster({
               <div className="dwarf-details">
                 <h3>{dwarf.name}</h3>
                 <p>
-                  {dwarf.title} · {specialty}
+                  {dwarf.species === "Skarner" ? "Crystal scorpion" : dwarf.title} · {specialty}
                 </p>
+                {dwarf.species === "Skarner" && (
+                  <p className="species-info">
+                    Wood +5/day · Stone +6/day · Mushrooms +0/day · Eats 2
+                    food/day
+                  </p>
+                )}
                 <p className="tool-line">
-                  {dwarf.hasTool
+                  {dwarf.species === "Skarner"
+                    ? "Claws cannot use tools"
+                    : dwarf.hasTool
                     ? "⚒️ Carries a tool (+1 / day)"
                     : "No tool"}
                 </p>
@@ -109,7 +117,12 @@ export function DwarfRoster({
 
                 <div className="tool-actions">
                   <button
-                    disabled={isAway || dwarf.hasTool || tools < 1}
+                    disabled={
+                      isAway ||
+                      dwarf.species === "Skarner" ||
+                      dwarf.hasTool ||
+                      tools < 1
+                    }
                     onClick={() => onEquip(dwarf.id)}
                   >
                     Equip
