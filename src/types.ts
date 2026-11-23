@@ -24,6 +24,20 @@ export interface ColonyState {
     // Keep recruitment one-time even if Skarner later dies.
     skarnerJoined: boolean;
     forgeEvents: ForgeEvent[];
+    attack: Attack | null;
+    attackOutcome: AttackOutcome | null;
+}
+
+export interface Attack {
+    attacker: "Piltovians";
+    weaponsPerDay: number;
+    daysLeft: number;
+    totalDays: number;
+}
+
+export interface AttackOutcome {
+    day: number;
+    result: "defended" | "plundered";
 }
 
 export interface ExpeditionResult { 
