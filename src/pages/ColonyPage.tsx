@@ -24,6 +24,9 @@ export function ColonyPage() {
   } = useColony();
   const [destination, setDestination] = useState("crystal-cave");
   const [expeditionDwarf, setExpeditionDwarf] = useState("dwarf-3");
+  const selectedDwarf = colony.dwarves.find(
+    (dwarf) => dwarf.id === expeditionDwarf,
+  );
 
   let foodNeeded = 0;
   for (const dwarf of colony.dwarves) {
@@ -174,10 +177,17 @@ export function ColonyPage() {
                 <option
                   key={dwarf.id}
                   value={dwarf.id}
-                  disabled={dwarf.status === "expedition"}
+                  disabled={
+                    dwarf.status === "expedition" ||
+                    dwarf.status === "crafting"
+                  }
                 >
                   {dwarf.name}
-                  {dwarf.status === "expedition" ? " (travelling)" : ""}
+                  {dwarf.status === "expedition"
+                    ? " (travelling)"
+                    : dwarf.status === "crafting"
+                      ? " (forging)"
+                      : ""}
                 </option>
               ))}
             </select>
@@ -201,8 +211,8 @@ export function ColonyPage() {
           <button
             disabled={
               expeditionPending ||
-              colony.dwarves.find((dwarf) => dwarf.id === expeditionDwarf)
-                ?.status === "expedition"
+              selectedDwarf?.status === "expedition" ||
+              selectedDwarf?.status === "crafting"
             }
             onClick={() => sendExpedition(expeditionDwarf, destination)}
           >
@@ -210,7 +220,7 @@ export function ColonyPage() {
           </button>
           <p>
             A result returns in one request. The selected dwarf is unavailable
-            while travelling.
+            while travelling or forging.
           </p>
         </section>
 

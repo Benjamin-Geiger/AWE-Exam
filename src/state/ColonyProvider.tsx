@@ -217,7 +217,7 @@ export function ColonyProvider({ children }: { children: ReactNode }) {
     if (
       expeditionLock.current ||
       !dwarf ||
-      dwarf.status === "expedition" ||
+      isBusy(dwarf) ||
       // only one attack at a time
       (destination === ATTACK_DESTINATION && colony.attack)
     ) {
